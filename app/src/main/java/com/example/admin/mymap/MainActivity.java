@@ -2,15 +2,16 @@ package com.example.admin.mymap;
 
 import android.graphics.Color;
 import android.graphics.Point;
-
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.View;
 import android.view.animation.LinearInterpolator;
+import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
-
 
 import com.amap.api.location.AMapLocation;
 import com.amap.api.location.AMapLocationClient;
@@ -36,8 +37,9 @@ import java.util.ArrayList;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
+import butterknife.OnClick;
 
-public class MainActivity extends AppCompatActivity  {
+public class MainActivity extends AppCompatActivity {
 
     @BindView(R.id.map)
     MapView mMapView;
@@ -46,15 +48,15 @@ public class MainActivity extends AppCompatActivity  {
     AMapLocationClient mlocationClient;
     AMapLocationClientOption mLocationOption;//参数
     LocationSource.OnLocationChangedListener mListener;
-     double loctionLat;
+    double loctionLat;
     double loctionLong;
     private UiSettings mUiSettings;
-   boolean isFirstLoc =true;//首次定位
+    boolean isFirstLoc = true;//首次定位
     private ArrayList<MarkerOptions> markerOptionsList = new ArrayList<MarkerOptions>();// 所有的marker
     private ArrayList<MarkerOptions> markerOptionsListInView = new ArrayList<MarkerOptions>();// 视野内的marker
     private int height;// 屏幕高度(px)
     private int width;// 屏幕宽度(px)
-  private Boolean addMarkerFirst = false;
+    private Boolean addMarkerFirst = false;
     Handler timeHandler = new Handler() {
         @Override
         public void handleMessage(android.os.Message msg) {
@@ -65,10 +67,10 @@ public class MainActivity extends AppCompatActivity  {
                     resetMarks();
                     break;
                 case 1:
-                    if(!addMarkerFirst){
+                    if (!addMarkerFirst) {
                         addMarkers();
                     }
-                    addMarkerFirst=true;
+                    addMarkerFirst = true;
 
 
                     break;
@@ -160,10 +162,12 @@ public class MainActivity extends AppCompatActivity  {
         aMap.setOnMarkerClickListener(new AMap.OnMarkerClickListener() {
             @Override
             public boolean onMarkerClick(Marker marker) {
-                LatLng latLng1= new LatLng(loctionLat,loctionLong);
+                LatLng latLng1 = new LatLng(loctionLat, loctionLong);
 
-                float distance = AMapUtils.calculateLineDistance(latLng1,marker.getPosition());//位置与宝藏的距离
-                Toast.makeText(MainActivity.this,"距离"+distance,Toast.LENGTH_SHORT).show();
+                float distance = AMapUtils.calculateLineDistance(latLng1, marker.getPosition());//位置与宝藏的距离
+                Toast.makeText(MainActivity.this, "距离" + distance, Toast.LENGTH_SHORT).show();
+                marker.showInfoWindow();
+
                 return true;
             }
         });
@@ -172,7 +176,7 @@ public class MainActivity extends AppCompatActivity  {
             @Override
             public void onLocationChanged(AMapLocation amapLocation) {
                 //注意设置合适的定位时间的间隔，并且在合适时间调用removeUpdates()方法来取消定位请求
-                if (mListener != null&&amapLocation != null) {
+                if (mListener != null && amapLocation != null) {
                     if (amapLocation != null && amapLocation.getErrorCode() == 0) {
                         // 如果不设置标志位，此时再拖动地图时，它会不断将地图移动到当前的位置
                         if (isFirstLoc) {
@@ -187,14 +191,14 @@ public class MainActivity extends AppCompatActivity  {
 // 设置定位的类型为定位模式，有定位、跟随或地图根据面向方向旋转几种
                             aMap.setMyLocationStyle(myLocationStyle);
                             isFirstLoc = false;
+
+                            Toast.makeText(MainActivity.this, "当前地址：" + amapLocation.getAddress(), Toast.LENGTH_SHORT).show();
                         }
 
 
-
-                        loctionLat= amapLocation.getLatitude();
+                        loctionLat = amapLocation.getLatitude();
                         loctionLong = amapLocation.getLongitude();
-                        timeHandler.sendEmptyMessage(1);//加载market
-
+                        timeHandler.sendEmptyMessage(1);//加载marker
 
 
                     } else {
@@ -202,9 +206,10 @@ public class MainActivity extends AppCompatActivity  {
                         Log.e("AmapErr", errText);
                     }
 
-                }else {
+                } else {
 
-                }}
+                }
+            }
         });
     }
 
@@ -213,7 +218,7 @@ public class MainActivity extends AppCompatActivity  {
         for (int i = 0; i < 200; i++) {
             LatLng latLng = new LatLng(Math.random() * 0.1 + loctionLat,
                     Math.random() * 0.1 + loctionLong);
-            MarkerOptions m=new MarkerOptions();
+            MarkerOptions m = new MarkerOptions();
             markerOptionsList.add(m.position(latLng)
                     .title("Marker" + i)
                     .icon(BitmapDescriptorFactory
@@ -223,12 +228,13 @@ public class MainActivity extends AppCompatActivity  {
 
 
     }
+
     /**
      * 地上生长的Marker
      */
     private void startGrowAnimation(Marker growMarker) {
-        if(growMarker != null) {
-            Animation animation = new ScaleAnimation(0,1,0,1);
+        if (growMarker != null) {
+            Animation animation = new ScaleAnimation(0, 1, 0, 1);
             animation.setInterpolator(new LinearInterpolator());
             //整个移动所需要的时间
             animation.setDuration(1000);
@@ -238,6 +244,7 @@ public class MainActivity extends AppCompatActivity  {
             growMarker.startAnimation();
         }
     }
+
     /**
      * 获取宽高
      */
@@ -249,8 +256,8 @@ public class MainActivity extends AppCompatActivity  {
     }
 
     private void initAMap() {
-        if(aMap==null){
-          aMap=  mMapView.getMap();
+        if (aMap == null) {
+            aMap = mMapView.getMap();
         }
         // 设置定位监听
         aMap.setLocationSource(new LocationSource() {
@@ -270,7 +277,8 @@ public class MainActivity extends AppCompatActivity  {
 // 设置为true表示显示定位层并可触发定位，false表示隐藏定位层并不可触发定位，默认是false
         aMap.setMyLocationEnabled(true);
 
-
+        //infowindow设置自定义样式
+        aMap.setInfoWindowAdapter(new InfoWindowAdapter());
 
 
         mUiSettings = aMap.getUiSettings();
@@ -284,12 +292,14 @@ public class MainActivity extends AppCompatActivity  {
         mlocationClient = new AMapLocationClient(this);
         //初始化定位参数
         mLocationOption = new AMapLocationClientOption();
-       //是否一次定位
+        //是否一次定位
         mLocationOption.setOnceLocation(false);
 
 
         //设置为高精度定位模式
         mLocationOption.setLocationMode(AMapLocationClientOption.AMapLocationMode.Hight_Accuracy);
+        //设置是否返回地址信息（默认返回地址信息）
+        mLocationOption.setNeedAddress(true);
         //设置定位间隔,单位毫秒,默认为2000ms
         mLocationOption.setInterval(3000);
 
@@ -306,7 +316,7 @@ public class MainActivity extends AppCompatActivity  {
     private void initLocationStyle() {
         myLocationStyle = new MyLocationStyle();//初始化定位蓝点样式类
         myLocationStyle.strokeColor(Color.argb(0, 0, 0, 0));// 设置圆形的边框颜色  
-         myLocationStyle.radiusFillColor(Color.argb(0, 0, 0, 0));// 设置圆形的填充颜色  
+        myLocationStyle.radiusFillColor(Color.argb(0, 0, 0, 0));// 设置圆形的填充颜色  
 
         myLocationStyle.myLocationType(MyLocationStyle.LOCATION_TYPE_LOCATION_ROTATE);//
 
@@ -344,5 +354,36 @@ public class MainActivity extends AppCompatActivity  {
         mMapView.onSaveInstanceState(outState);
     }
 
+    class InfoWindowAdapter implements AMap.InfoWindowAdapter {
 
+        @BindView(R.id.infowindow_bn)
+        Button infowindowBn;
+
+        @Override
+        public View getInfoWindow(Marker marker) {
+            View infoWindow = getLayoutInflater().inflate(R.layout.my_infowindow, null);
+            final TextView textView= (TextView) infoWindow.findViewById(R.id.infowindow_tv);
+            textView.setText(marker.getTitle());
+            textView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    textView.setText("点过了");
+                }
+            });
+            return infoWindow;
+        }
+
+        @Override
+        public View getInfoContents(Marker marker) {
+            View infoContents = getLayoutInflater().inflate(R.layout.my_infowindow_contents, null);
+            //ButterKnife.bind(MainActivity.this, infoContents);
+
+            return infoContents;
+        }
+        @OnClick({R.id.infowindow_bn,R.id.infowindow_tv})
+        public void OnClick (View view){
+
+            Toast.makeText(MainActivity.this, "我是那个bn", Toast.LENGTH_SHORT).show();
+        }
+    }
 }
